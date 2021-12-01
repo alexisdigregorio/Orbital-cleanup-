@@ -177,13 +177,13 @@ legend('Earth Radius', "Pegasus orbit", 'Peg pos', "Falcon orbit", 'Fal pos', "A
 % poition an velocity vector: 
   
 dtime = 87.6*60; % [seconds]
-[v1_t1, v2_t1] = Lamb(Peg_startR,FalR_meet,dtime) 
+[v1_t1, v2_t1] = Lamb(Peg_startR,FalR_meet,dtime) ;
 
 % dela v to get on transfer
-dV_on = Peg_startV - v1_t1
+dV_on = Peg_startV - v1_t1;
 
 % delta v to get off transfer
-dV_off = FalV_meet - v2_t1
+dV_off = FalV_meet - v2_t1;
 
 % total delta v 
 deltaV1 = abs(norm(dV_on)) + abs(norm(dV_off)); 
@@ -331,28 +331,35 @@ vpt = h_t/rpt ;
 
 v_fin = sqrt(mu_earth/rat); 
 
-dV_HT = abs(v_init-vpt)+abs(v_fin-vat)
+dV_HT = abs(v_init-vpt)+abs(v_fin-vat);
 
 
+% CEOs of new big circ orbit
+BigCirc.inc = 7.8540*(pi/180);
+BigCirc.RAAN = 111.3732*(pi/180);
+BigCirc.w = 148.0010*(pi/180);
+BigCirc.ecc = 0; 
+BigCirc.h = sqrt(norm(AyaRvect)*mu_earth);
+BigCirc.Period = (2*pi*norm(AyaRvect))/v_fin;
+
+[BigCirc_Rvect, BigCirc_Vvect] = PerigeeRandV(BigCirc.h, BigCirc.ecc, BigCirc.RAAN, BigCirc.inc, BigCirc.w);
+
+state = [BigCirc_Rvect, BigCirc_Vvect];
+tspan = [0 0.5*BigCirc.Period];
+    
+[time_BigCirc,BigCircRV] = ode45(@EOM, tspan, state, options);
+
+figure(4)
+plot3(BigCircRV(:,1), BigCircRV(:,2), BigCircRV(:,3));
+hold on
+plot3(AyameRV(:,1), AyameRV(:,2), AyameRV(:,3));
+grid on 
+title('HT check with Ayame')
+legend('large circualrized orbit','Ayame Orbit')
+
+ 
 
 
-
-
-
-% % new circularized enlarged orbit: 
-% %Titan 3C Transtage Debris TLE Data
-% BigCirc.inc = 7.8540*(pi/180);
-% BigCirc.RAAN = 111.3732*(pi/180);
-% BigCirc.ecc =  0;
-% Ayame.w = 148.0010*(pi/180);
-% Ayame.ME = 250.5539;
-% Ayame.h = sqrt(mu_earth*(1+Ayame.ecc)*15674);
-% Ayame.tsp = ((Ayame.ME*(Ayame.h^3/mu_earth^2))^(2/3))/(1-(Ayame.ecc^2)); % time since prigee passage
-% Ayame.EOD = 21327.81529923;
-% 
-% [TitRvect, TitVvect] = PerigeeRandV(Titan.h, Titan.ecc, Titan.RAAN, Titan.inc, Titan.w);
-% r_bigCirc = AyaRvect; 
-% v_bigCirc = 
 
 
  
