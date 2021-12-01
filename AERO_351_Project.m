@@ -193,20 +193,59 @@ xlabel('x')
 ylabel('y')
 zlabel('z')
 legend("Pegasus R/B Orbit", "Pegasus R/B ", "Falcon 1 R/B Orbit", "Falcon 1 R/B", "Lambert's Maneuver")
-% %% Trying an inc and RAAN Change
-% 
-% tspan = [0 Pegasus.tsp];
-% [~,PegasusRV] = ode45(@EOM, tspan, state,options);
-% 
-% tspan = [0 Pegasus.tsp+FalconDifference];
-% [~,FalconRV] = ode45(@EOM, tspan, state,options);
-% 
-% %START OF TRANSFERS
-% Start = [PegasusRV(end,1), PegasusRV(end,2), PegasusRV(end,3)];
-% PegStart = [PegasusRV(end,4), PegasusRV(end,5), PegasusRV(end,6)];
-% 
-% End = [FalconRV(end,1), FalconRV(end,2), FalconRV(end,3)];
-% FalStart = [FalconRV(end,4), FalconRV(end,5), FalconRV(end,6)];
-% 
-% v1 = norm(PegStart);
-% v2 = norm(FalStart);
+
+%% Falcon to Ayame
+%Initial Falcon time at the start of transfer orbit 2
+Faltr2t = Falcon.tsp+FalconDifference+tLamb+(5*Falcon.Period);
+
+tspan = [0 Faltr2t];
+state = [FalRvect FalVvect]
+[Ftime,FalconRV] = ode45(@EOM, tspan, state,options);
+
+plot3(FalconRV(:,1), FalconRV(:,2), FalconRV(:,3),'b');
+hold on
+plot3(FalconRV(end,1), FalconRV(end,2), FalconRV(end,3),'b.', 'MarkerSize',10)
+
+Ayatr2t = Ayame.tsp+AyameDifference+tLamb+(5*Falcon.Period);
+tspan = [0 Ayatr2t];
+[~,AyameRV] = ode45(@EOM, tspan, state,options);
+
+%Circularize orbit of Falcon
+timeleft2perigee = (7*Falcon.Period)-Faltr2t;
+
+tspan = [Faltr2t 7*Falcon.Period+.001];
+state = [FalconRV(end,1) FalconRV(end,2) FalconRV(end,3) FalconRV(end,4) FalconRV(end,5) FalconRV(end,6)];
+[Ftime,FalconRV] = ode45(@EOM, tspan, state,options);
+
+hold on 
+plot3(FalconRV(:,1), FalconRV(:,2), FalconRV(:,3), 'g');
+hold on
+plot3(FalconRV(end,1), FalconRV(end,2), FalconRV(end,3),'c.', 'MarkerSize',10)
+hold on 
+plot3(FalRvect(1),FalRvect(2),FalRvect(3),'r.', 'MarkerSize', 10)
+
+rpfalcon=norm(FalconRV(end,1:3));
+
+hnew = sqrt(rpfalcon*muearth);
+
+%Falcon 1 Rocket Body TLE Data
+CircFalcon.h = hnew;
+CircFalcon.inc = 9.0452*(pi/180);
+CircFalcon.RAAN = 264.0368*(pi/180);
+CircFalcon.ecc =  0;
+CircFalcon.w = 331.4079*(pi/180);
+
+[CircFalRvect, CircFalVvect] = PerigeeRandV(CircFalcon.h, CircFalcon.ecc, CircFalcon.RAAN, CircFalcon.inc, CircFalcon.w);
+
+deltaVcircl = norm(CircFalVvect-FalVvect);
+
+%Inclination change
+deltainc = Ayame.inc- Falcon.inc;
+
+v1 = norm([FalconRV(end,4) FalconRV(end,5) FalconRV(end,6)]);
+
+deltVinc = 2*v1*sin(deltainc/2);
+
+%RAAN Change
+deltaRAAN = Ayame.RAAN-Falcon.RAAN;
+
