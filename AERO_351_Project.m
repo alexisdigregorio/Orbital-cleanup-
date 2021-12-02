@@ -169,7 +169,7 @@ disp("Delta V for a Lambert's Transfer = " + double(deltaV) + "km/s")
 
 state = [LamStart v1vect];
 tspan = [0 tLamb];
-[time,LambRV] = ode45(@EOM, tspan, state,options);
+[~,LambRV] = ode45(@EOM, tspan, state,options);
 
 
 figure(2)
@@ -353,5 +353,103 @@ transfer.inc = Ayame.inc;
 
 [transferRvect, transferVvect] = PerigeeRandV(transfer.h, transfer.ecc, transfer.RAAN, transfer.inc, transfer.w);
 
-deltaVchase = norm(transferVvect-AyaVvect)*2;
+deltaVchase = norm(transferVvect-AyaVvect)+norm(AyaVvect-transferVvect);
 disp("Total deltaV required for transfer 2 is " + double(deltaVdirectionchange+deltaVBigCirc+deltaVIncRAAN+deltaVcirc+deltaVchase) + ' km/s')
+
+%% Transfer 3
+%Inc and RAAN Change
+
+%Inc and RAAN Change together
+v1 = norm(AyaVvect);
+deltaRAAN = Titan.RAAN-Ayame.RAAN;
+
+alpha = acos((cos(Ayame.inc)*cos(Titan.inc)) + (sin(Ayame.inc)*sin(Titan.inc)*cos(deltaRAAN)));
+deltaVIncRAAN2 = norm(2*v1*sin(alpha/2));
+
+%%
+%Falcon 1 with Circular orbit and Inc and RAAN change
+Ayame.inc = Titan.inc;
+Ayame.RAAN = Titan.RAAN;
+
+[AyaRvect, AyaVvect] = PerigeeRandV(Ayame.h, Ayame.ecc, Ayame.RAAN, Ayame.inc, Ayame.w);
+
+
+% 
+% deltaV = zeros(100,1000);
+% starttime = linspace(1,100,100);
+% lambtimes = linspace(1,1000,100);
+% 
+% for i = 1:100
+
+    
+timestarttrans3 = timesincestart+Ttransfer+(5*Ayame.Period)+(0*60);
+
+tspan = [0 timestarttrans3+(Ayame.Period/2)];
+state = [AyaRvect AyaVvect];
+[~,AyameRV] = ode45(@EOM, tspan, state,options);
+
+AyaTransStartVvect = [AyameRV(end,4), AyameRV(end,5), AyameRV(end,6)];
+
+state = [TitRvect TitVvect];
+
+tspan = [0 timestarttrans3+(Titan.Period)/1.25];
+[~,TitanRV] = ode45(@EOM, tspan, state,options);
+
+TitTransEndVvect = [TitanRV(end,4), TitanRV(end,5), TitanRV(end,6)];
+
+figure(5)
+plot3(AyameRV(:,1), AyameRV(:,2), AyameRV(:,3));
+hold on
+plot3(AyameRV(end,1), AyameRV(end,2), AyameRV(end,3),'c.', 'MarkerSize',10)
+hold on 
+plot3(TitanRV(:,1), TitanRV(:,2), TitanRV(:,3));
+hold on
+plot3(TitanRV(end,1), TitanRV(end,2), TitanRV(end,3),'b.', 'MarkerSize',10)
+
+LamStart = AyameRV(end,1:3);
+
+% for j = 1:100
+lambtime = 190*60;
+
+% state = [TitRvect TitVvect];
+% tspan = [0 timestarttrans3];
+% [~,TitanRV] = ode45(@EOM, tspan, state,options);
+
+LamEnd = TitanRV(end,1:3);
+
+%Solving for the transfer between Titan and Ayame
+[v1vect,v2vect] = Lamberts(LamStart, LamEnd, lambtime);
+
+
+state = [LamStart v1vect];
+tspan = [0 lambtime];
+[time,LambRV] = ode45(@EOM, tspan, state,options);
+
+hold on
+plot3(LambRV(:,1), LambRV(:,2), LambRV(:,3));
+hold on
+plot3(LambRV(end,1), LambRV(end,2), LambRV(end,3),'b.', 'MarkerSize',10)
+
+
+
+deltaVstart = AyaTransStartVvect-v1vect;
+deltaVend = TitTransEndVvect-v2vect;
+
+% deltaV(i,j) = abs(norm(deltaVstart)) + abs(norm(deltaVend));
+% 
+% if j >= 2
+%     if deltaV(i,j-1) < deltaV(i,j)
+%         break
+%     end
+% else
+%     continue
+% end
+% 
+% 
+% end
+% 
+% end
+deltaVLamb2 = abs(norm(deltaVstart)) + abs(norm(deltaVend));
+% disp("Delta V for a Lambert's Transfer = " + double(deltaVLamb2) + "km/s")
+disp("The total delta V for Tranfer 3 is " + double(deltaVLamb2+deltaVIncRAAN2) + " km/s")
+
