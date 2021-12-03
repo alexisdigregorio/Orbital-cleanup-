@@ -203,6 +203,7 @@ state = [FalRvect FalVvect];
 [~,FalconRV] = ode45(@EOM, tspan, state,options);
 
 figure(3)
+%Plotting the Orbit of Falcon and the Position of where we left off
 plot3(FalconRV(:,1), FalconRV(:,2), FalconRV(:,3),'b');
 hold on
 plot3(FalconRV(end,1), FalconRV(end,2), FalconRV(end,3),'b.', 'MarkerSize',10)
@@ -214,11 +215,13 @@ tspan = [Faltr2t 7*Falcon.Period+.001];
 state = [FalconRV(end,1) FalconRV(end,2) FalconRV(end,3) FalconRV(end,4) FalconRV(end,5) FalconRV(end,6)];
 [Ftime,FalconRV] = ode45(@EOM, tspan, state,options);
 
+%Plotting the rest of the Falcon orbit (Waiting till perigee)
 hold on 
 plot3(FalconRV(:,1), FalconRV(:,2), FalconRV(:,3), 'g');
 hold on
 plot3(FalconRV(end,1), FalconRV(end,2), FalconRV(end,3),'c.', 'MarkerSize',10)
 hold on 
+%Plotting where we end up as well (should match with previous plot)
 plot3(FalRvect(1),FalRvect(2),FalRvect(3),'r.', 'MarkerSize', 10)
 grid on 
 grid minor
@@ -270,12 +273,26 @@ CIRFalcon.w = 331.4079*(pi/180);
 COES = COEs(CIRFalRvect, CIRFalVvect);
 CIRFalcon.Period = COES(7);
 
+%Propigating New Circular Orbit with Inc and Raan change
 tspan = [0 CIRFalcon.Period];
 state = [CIRFalRvect CIRFalVvect];
 [~,CIRFalconRV] = ode45(@EOM, tspan, state,options);
-fuckingwork = [CIRFalconRV(end,1), CIRFalconRV(end,2), CIRFalconRV(end,3)];
+
+%Propagating intital Falcon Orbit 
+tspan = [0 Falcon.Period];
+state = [FalRvect FalVvect];
+[~,FalconRV] = ode45(@EOM, tspan, state,options);
+
+% tspan = [0 Faltr2t];
+% state = [FalRvect FalVvect];
+% [~,FalconRV] = ode45(@EOM, tspan, state,options);
 
 figure(4)
+%Plotting intial Falcon Orbit
+plot3(FalconRV(:,1), FalconRV(:,2), FalconRV(:,3),'b');
+hold on
+
+%Plotting new ciruclar orbit
 plot3(CIRFalconRV(:,1), CIRFalconRV(:,2), CIRFalconRV(:,3), 'g');
 hold on
 plot3(CIRFalconRV(end,1), CIRFalconRV(end,2), CIRFalconRV(end,3),'.',"Color", [0.5 .6 .2], 'MarkerSize',10)
@@ -292,16 +309,26 @@ BigCirc.h = sqrt(norm(AyaRvect)*muearth);
 COES = COEs(BigCircRvect,BigCircVvect);
 BigCirc.Period = COES(7);
 
+%Prograting with Non-Hohmann Transfer with Common Apse line
 state = [BigCircRvect BigCircVvect];
 tspan = [0 (BigCirc.Period/2)-184.8153];
-    
 [~,BigCircRV] = ode45(@EOM, tspan, state, options);
 
+%Plotting Speed Increase from small circular orbit to bigger ciruclar orbit
+x = [CIRFalconRV(end,1) BigCircRvect(1)];
+y = [CIRFalconRV(end,2) BigCircRvect(2)];
+z = [CIRFalconRV(end,3) BigCircRvect(3)];
+hold on 
+plot3(x,y,z, 'color', [0.4 0 0.4])
+hold on 
+plot3(BigCircRvect(1), BigCircRvect(2), BigCircRvect(3), '.', 'color', '[0 0 0]', 'MarkerSize', 10)
+
+%Plotting Non-Hohmann Transfer
 hold on 
 plot3(BigCircRV(:,1), BigCircRV(:,2), BigCircRV(:,3));
 hold on 
 plot3(BigCircRV(end,1), BigCircRV(end,2), BigCircRV(end,3), 'g.', 'MarkerSize', 10);
-title('Increasing size of Obrit to intersect with Ayame Orbit')
+title('Transfer from Falcon to Ayame')
 xlabel('x')
 ylabel('y')
 zlabel('z')
@@ -318,14 +345,17 @@ finalvelocity = AyaVvect;
 deltaVdirectionchange = norm(finalvelocity-intialvelocity);
 
 timesincestart = 7*Falcon.Period+.001+(BigCirc.Period/2)-184.8153;
+
+%Propagating Ayame from start to where we are
 tspan = [0 timesincestart];
 state = [AyaRvect AyaVvect];
 [~,AyameRV] = ode45(@EOM, tspan, state,options);
 
+%Plotting Ayame Orbit along with Ayame object position 
 hold on 
-plot3(AyameRV(:,1), AyameRV(:,2), AyameRV(:,3));
+plot3(AyameRV(:,1), AyameRV(:,2), AyameRV(:,3), 'Color', [.2 .6 .5]);
 hold on
-plot3(AyameRV(end,1), AyameRV(end,2), AyameRV(end,3),'c.', 'MarkerSize',10)
+plot3(AyameRV(end,1), AyameRV(end,2), AyameRV(end,3),'.', 'MarkerSize',10)
 grid on 
 grid minor
 
@@ -353,7 +383,20 @@ transfer.inc = Ayame.inc;
 
 [transferRvect, transferVvect] = PerigeeRandV(transfer.h, transfer.ecc, transfer.RAAN, transfer.inc, transfer.w);
 
+%Propagating Chase Maneuver transfer orbit
+tspan = [0 Ttransfer];
+state = [transferRvect transferVvect];
+[~,ChaseRV] = ode45(@EOM, tspan, state,options);
+
+%Plotting Chase Maneuver transfer orbit
+hold on 
+plot3(ChaseRV(:,1), ChaseRV(:,2), ChaseRV(:,3));
+
+legend("Starting Orbit", "Intitial Circular Orbit", "Position at beginning of Transfer", "Speed Increase to increase size of orbit", "Position after Speed increase", "Non-Hohmann Transfer w/ common apse", "Position after NHT", "Ayame's Orbit", "Ayame Debris Position before chase", "Chase Maneuever")
+
+%Calculating delta V for Chase Maneuever
 deltaVchase = norm(transferVvect-AyaVvect)+norm(AyaVvect-transferVvect);
+
 disp("Total deltaV required for transfer 2 is " + double(deltaVdirectionchange+deltaVBigCirc+deltaVIncRAAN+deltaVcirc+deltaVchase) + ' km/s')
 
 %% Transfer 3
@@ -366,7 +409,7 @@ deltaRAAN = Titan.RAAN-Ayame.RAAN;
 alpha = acos((cos(Ayame.inc)*cos(Titan.inc)) + (sin(Ayame.inc)*sin(Titan.inc)*cos(deltaRAAN)));
 deltaVIncRAAN2 = norm(2*v1*sin(alpha/2));
 
-%%
+
 %Falcon 1 with Circular orbit and Inc and RAAN change
 Ayame.inc = Titan.inc;
 Ayame.RAAN = Titan.RAAN;
@@ -382,7 +425,7 @@ Ayame.RAAN = Titan.RAAN;
 % for i = 1:100
 
     
-timestarttrans3 = timesincestart+Ttransfer+(5*Ayame.Period)+(0*60);
+timestarttrans3 = timesincestart+Ttransfer+(5*Ayame.Period);
 
 tspan = [0 timestarttrans3+(Ayame.Period/2)];
 state = [AyaRvect AyaVvect];
@@ -392,30 +435,26 @@ AyaTransStartVvect = [AyameRV(end,4), AyameRV(end,5), AyameRV(end,6)];
 
 state = [TitRvect TitVvect];
 
-tspan = [0 timestarttrans3+(Titan.Period)/1.25];
+tspan = [0 timestarttrans3+(Ayame.Period/2)];
 [~,TitanRV] = ode45(@EOM, tspan, state,options);
-
-TitTransEndVvect = [TitanRV(end,4), TitanRV(end,5), TitanRV(end,6)];
 
 figure(5)
 plot3(AyameRV(:,1), AyameRV(:,2), AyameRV(:,3));
 hold on
 plot3(AyameRV(end,1), AyameRV(end,2), AyameRV(end,3),'c.', 'MarkerSize',10)
-hold on 
-plot3(TitanRV(:,1), TitanRV(:,2), TitanRV(:,3));
-hold on
-plot3(TitanRV(end,1), TitanRV(end,2), TitanRV(end,3),'b.', 'MarkerSize',10)
+
 
 LamStart = AyameRV(end,1:3);
 
 % for j = 1:100
-lambtime = 190*60;
+lambtime = 1300*60;
 
-% state = [TitRvect TitVvect];
-% tspan = [0 timestarttrans3];
-% [~,TitanRV] = ode45(@EOM, tspan, state,options);
+state = [TitRvect TitVvect];
+tspan = [0 timestarttrans3+(Ayame.Period/2)+lambtime];
+[~,TitanRV] = ode45(@EOM, tspan, state,options);
 
 LamEnd = TitanRV(end,1:3);
+TitTransEndVvect = [TitanRV(end,4), TitanRV(end,5), TitanRV(end,6)];
 
 %Solving for the transfer between Titan and Ayame
 [v1vect,v2vect] = Lamberts(LamStart, LamEnd, lambtime);
@@ -424,7 +463,10 @@ LamEnd = TitanRV(end,1:3);
 state = [LamStart v1vect];
 tspan = [0 lambtime];
 [time,LambRV] = ode45(@EOM, tspan, state,options);
-
+hold on 
+plot3(TitanRV(:,1), TitanRV(:,2), TitanRV(:,3));
+hold on
+plot3(TitanRV(end,1), TitanRV(end,2), TitanRV(end,3),'b.', 'MarkerSize',10)
 hold on
 plot3(LambRV(:,1), LambRV(:,2), LambRV(:,3));
 hold on
